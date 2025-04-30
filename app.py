@@ -13,7 +13,6 @@ st.set_page_config(page_title="Panel Publicidad Instagram", layout="wide")
 st.markdown("""
     <style>
         .metric-box {
-            background-color: #f0f4f8;
             padding: 1.2rem;
             margin: 0.5rem;
             border-radius: 1rem;
@@ -22,6 +21,22 @@ st.markdown("""
             box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
             display: inline-block;
             width: 180px;
+        }
+        .metric-activo {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .metric-vencido {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .metric-total {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+        .metric-ganado {
+            background-color: #fff3cd;
+            color: #856404;
         }
         .main-title {
             text-align: center;
@@ -124,10 +139,10 @@ def mostrar_dashboard():
 
     st.markdown("<div class='main-title'>📊 Panel de Control</div>", unsafe_allow_html=True)
     col1, col2, col3, col4 = st.columns(4)
-    col1.markdown(f"<div class='metric-box'>🟢<br><strong>Activas</strong><br>{activas}</div>", unsafe_allow_html=True)
-    col2.markdown(f"<div class='metric-box'>🔴<br><strong>Vencidas</strong><br>{vencidas}</div>", unsafe_allow_html=True)
-    col3.markdown(f"<div class='metric-box'>📌<br><strong>Total</strong><br>{total}</div>", unsafe_allow_html=True)
-    col4.markdown(f"<div class='metric-box'>💰<br><strong>Ganado</strong><br>${total_ganado}</div>", unsafe_allow_html=True)
+    col1.markdown(f"<div class='metric-box metric-activo'>🟢<br><strong>Activas</strong><br>{activas}</div>", unsafe_allow_html=True)
+    col2.markdown(f"<div class='metric-box metric-vencido'>🔴<br><strong>Vencidas</strong><br>{vencidas}</div>", unsafe_allow_html=True)
+    col3.markdown(f"<div class='metric-box metric-total'>📌<br><strong>Total</strong><br>{total}</div>", unsafe_allow_html=True)
+    col4.markdown(f"<div class='metric-box metric-ganado'>💰<br><strong>Ganado</strong><br>${total_ganado}</div>", unsafe_allow_html=True)
 
     st.subheader("📺 Publicidades Activas")
     df_activas = df[df["Estado"] == "Activo"].copy()
