@@ -4,106 +4,79 @@ import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime, timedelta
 
-# ---------------- LOGIN ---------------- #
-st.set_page_config(page_title="Panel Publicidad", layout="wide")
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-
-def login():
-    st.title("Acceso al panel")
-    user = st.text_input("Usuario")
-    password = st.text_input("Contraseña", type="password")
-    if st.button("Ingresar"):
-        if user == "PubliSM" and password == "PubliSM":
-            st.session_state.logged_in = True
-        else:
-            st.error("Usuario o contraseña incorrectos")
-
-if not st.session_state.logged_in:
-    login()
-    st.stop()
-
-# ---------------- CONEXIÓN A SHEET ---------------- #
+# --- Autenticación con Streamlit secrets ---
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
-creds = Credentials.from_service_account_info(
-    st.secrets["gcp_service_account"],
-    scopes=SCOPES,
-)
+creds = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=SCOPES)
 client = gspread.authorize(creds)
-sheet_id = "19xOkLYWxB3_Y1zVGV8qKCH8BrcujNktV3-jr1Q9A1-w"  # ⚠️ Reemplazá por tu ID real
+
+# --- Conexión a la hoja de cálculo ---
+sheet_id = "19xOkLYWxB3_Y1zVGV8qKCH8BrcujNktV3-jr1Q9A1-w"
 spreadsheet = client.open_by_key(sheet_id)
-worksheet = spreadsheet.sheet1
+worksheet = spreadsheet.worksheet("Ingreso")
 
-# ---------------- FUNCIONES ---------------- #
-def cargar_datos(usuario, dias, precio):
-    fecha = datetime.now().strftime("%d/%m/%Y")
-    estado = "Activo"
-    nueva_fila = [usuario, fecha, dias, precio, estado]
-    worksheet.append_row(nueva_fila)
+# --- Cargar datos existentes ---
+data = worksheet.get_all_records()
+df = pd.DataFrame(data)
 
-def obtener_datos():
-    data = worksheet.get_all_records()
-    df = pd.DataFrame(data)
+# --- Procesamiento de datos ---
+if not df.empty:
+    df['Fecha'] = pd.to_datetime(df['Fecha'], dayfirst=True, errors='coerce')
+    df['Dias Contratados'] = pd.to_numeric(df['Dias Contratados'], errors='coerce')
+    df['Precio'] = pd.to_numeric(df['Precio'], errors='coerce')
+    df['Vence'] = df['Fecha'] + pd.to_timedelta(df['Dias Contratados'], unit='D')
+    df['Estado'] = df['Vence'].apply(lambda x: "Activo" if x >= datetime.now() else "Vencido")
 
-    # 🔍 Debug: Ver columnas reales
-    st.write("Columnas del DataFrame:", df.columns.tolist())
+# --- Estilos con HTML y CSS ---
+st.markdown("""
+    <style>
+        .big-title {font-size: 40px; font-weight: bold; text-align: center; color: #4CAF50; margin-bottom: 10px;}
+        .section-title {font-size: 28px; margin-top: 40px; color: #3F51B5; border-bottom: 2px solid #3F51B5; padding-bottom: 5px;}
+        .metric-box {background: #f1f3f6; padding: 20px; border-radius: 12px; text-align: center; box-shadow: 2px 2px 5px rgba(0,0,0,0.1);}
+        .stButton>button {background-color: #4CAF50; color: white; border: none; border-radius: 8px; padding: 10px 20px; font-size: 16px;}
+        .stButton>button:hover {background-color: #45a049;}
+    </style>
+""", unsafe_allow_html=True)
 
-    if "Fecha" in df.columns:
-        df["Fecha"] = pd.to_datetime(df["Fecha"], format="%d/%m/%Y", dayfirst=True, errors="coerce")
-        df = df.sort_values(by="Fecha", ascending=False)
-    return df
+# --- Título principal ---
+st.markdown("<div class='big-title'>📊 Panel de Gestión de Publicidad - PubliSM</div>", unsafe_allow_html=True)
 
-# ---------------- INTERFAZ ---------------- #
-menu = st.sidebar.selectbox("Menú", ["📥 Cargar Publicidad", "📊 Ver Dashboard"])
+# --- DASHBOARD ---
+st.markdown("<div class='section-title'>📈 Dashboard General</div>", unsafe_allow_html=True)
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.markdown("<div class='metric-box'>🟢 <br> <strong>Activas</strong><br> {} </div>".format(df[df["Estado"] == "Activo"].shape[0]), unsafe_allow_html=True)
+with col2:
+    st.markdown("<div class='metric-box'>🔴 <br> <strong>Vencidas</strong><br> {} </div>".format(df[df["Estado"] == "Vencido"].shape[0]), unsafe_allow_html=True)
+with col3:
+    st.markdown("<div class='metric-box'>💰 <br> <strong>Total Ganado</strong><br> ${:,.0f} </div>".format(df['Precio'].sum()), unsafe_allow_html=True)
 
-if menu == "📥 Cargar Publicidad":
-    st.header("Cargar nueva publicidad")
-
-    usuario = st.text_input("Usuario de Instagram")
+# --- FORMULARIO DE CARGA ---
+st.markdown("<div class='section-title'>✍️ Nueva Publicidad</div>", unsafe_allow_html=True)
+with st.form("formulario_carga"):
+    usuario = st.text_input("Usuario")
+    fecha = st.date_input("Fecha de inicio", format="DD/MM/YYYY")
     dias = st.number_input("Días contratados", min_value=1, step=1)
-    precio = st.number_input("Precio ($)", min_value=0, step=10)
+    precio = st.number_input("Precio total", min_value=0.0, step=100.0)
+    estado = "Activo"
+    enviar = st.form_submit_button("Cargar")
+    if enviar:
+        nueva_fila = [usuario, fecha.strftime("%d/%m/%Y"), dias, precio, estado]
+        worksheet.append_row(nueva_fila)
+        st.success(f"✅ Publicidad cargada para {usuario}")
 
-    if st.button("Cargar"):
-        if usuario:
-            cargar_datos(usuario, dias, precio)
-            st.success("Publicidad cargada correctamente.")
-        else:
-            st.warning("Debe ingresar un nombre de usuario.")
+# --- RESUMEN MENSUAL ---
+st.markdown("<div class='section-title'>📆 Resumen Mensual</div>", unsafe_allow_html=True)
+mes_actual = datetime.now().month
+anio_actual = datetime.now().year
+df_mes = df[(df["Fecha"].dt.month == mes_actual) & (df["Fecha"].dt.year == anio_actual)]
+st.write(f"Total en {datetime.now().strftime('%B')} {anio_actual}: ${df_mes['Precio'].sum():,.0f}")
+st.dataframe(df_mes[['Usuario', 'Fecha', 'Dias Contratados', 'Precio', 'Estado']], use_container_width=True)
 
-elif menu == "📊 Ver Dashboard":
-    st.title("Dashboard de Publicidad")
+# --- RESUMEN ANUAL ---
+st.markdown("<div class='section-title'>📅 Resumen Anual</div>", unsafe_allow_html=True)
+df_anual = df[df["Fecha"].dt.year == anio_actual]
+total_anual = df_anual.groupby(df_anual["Fecha"].dt.month)["Precio"].sum()
+st.bar_chart(total_anual)
 
-    df = obtener_datos()
-
-    if df.empty:
-        st.warning("No hay datos cargados aún.")
-        st.stop()
-
-    # FILTROS
-    clientes = df["Usuario"].unique().tolist()
-    cliente_sel = st.sidebar.selectbox("Filtrar por cliente", ["Todos"] + clientes)
-    if cliente_sel != "Todos":
-        df = df[df["Usuario"] == cliente_sel]
-
-    # MÉTRICAS
-    total = df["Precio"].sum()
-    activos = df[df["Estado"] == "Activo"]
-    vencidos = df[df["Estado"] != "Activo"]
-
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Total generado", f"${total}")
-    col2.metric("Publicidades activas", len(activos))
-    col3.metric("Clientes únicos", df["Usuario"].nunique())
-
-    st.markdown("---")
-
-    # GRILLA DE DATOS
-    with st.expander("📋 Ver datos"):
-        st.dataframe(df, use_container_width=True)
-
-    # PRÓXIMAS FUNCIONES
-    st.markdown("### Funciones próximas:")
-    st.markdown("- Sumar días a campañas activas")
-    st.markdown("- Gráficos mensuales")
-    st.markdown("- Exportar CSV")
-    st.markdown("- Notificaciones de vencimiento")
+st.markdown("---")
+st.caption("Creado con ❤️ por vos. Mejorado con ayuda de ChatGPT.")
