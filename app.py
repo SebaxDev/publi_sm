@@ -32,6 +32,24 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# -------------------- FUNCION DE LOGIN --------------------
+
+def login():
+    st.title("🔐 Iniciar sesión")
+    username = st.text_input("Usuario")
+    password = st.text_input("Contraseña", type="password")
+    if st.button("Ingresar"):
+        usuarios = st.secrets.get("auth", {})
+        if username in usuarios and password == usuarios[username]:
+            st.session_state["logueado"] = True
+            st.experimental_rerun()
+        else:
+            st.error("Credenciales incorrectas")
+
+if "logueado" not in st.session_state or not st.session_state["logueado"]:
+    login()
+    st.stop()
+
 # -------------------- CONEXION A GOOGLE SHEETS --------------------
 
 SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
