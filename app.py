@@ -57,7 +57,7 @@ def cargar_datos():
 
     data = worksheet.get_all_records()
     df = pd.DataFrame(data)
-    df.columns = df.columns.map(str).str.strip()
+    df.columns = pd.Index([str(col).strip() for col in df.columns])
     return df
 
 def agregar_registro(usuario, fecha, dias, precio, estado):
