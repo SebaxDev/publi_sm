@@ -33,7 +33,7 @@ if st.session_state.logged_in:
     client = gspread.authorize(creds)
 
     # Abrir hoja
-    spreadsheet = client.open("Ingreso")  # Cambiar por el nombre real
+    spreadsheet = client.open("Publicidad SM")  # Cambiar por el nombre real
     sheet = spreadsheet.worksheet("Ingreso")
 
     # --- Formulario ---
