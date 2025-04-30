@@ -37,20 +37,35 @@ creds = Credentials.from_service_account_info(
     st.secrets["gcp_service_account"], scopes=SCOPE
 )
 client = gspread.authorize(creds)
-sheet = client.open_by_key("19xOkLYWxB3_Y1zVGV8qKCH8BrcujNktV3-jr1Q9A1-w")
+
+try:
+    sheet = client.open_by_key("19xOkLYWxB3_Y1zVGV8qKCH8BrcujNktV3-jr1Q9A1-w")
+except Exception as e:
+    st.error(f"No se pudo abrir la hoja de cálculo: {e}")
+    st.stop()
 
 # -------------------- FUNCIONES --------------------
 
 def cargar_datos():
-    worksheet = sheet.worksheet("Base")
+    try:
+        worksheet = sheet.worksheet("Ingreso")
+    except gspread.exceptions.WorksheetNotFound:
+        st.error("❌ La hoja 'Ingreso' no fue encontrada en el documento.")
+        hojas = [ws.title for ws in sheet.worksheets()]
+        st.info(f"Hojas disponibles: {hojas}")
+        st.stop()
+
     data = worksheet.get_all_records()
     df = pd.DataFrame(data)
-    df.columns = df.columns.map(str).str.strip()  # 💡 Fix importante
+    df.columns = df.columns.map(str).str.strip()
     return df
 
 def agregar_registro(usuario, fecha, dias, precio, estado):
-    worksheet = sheet.worksheet("Base")
-    worksheet.append_row([usuario, fecha, dias, precio, estado])
+    try:
+        worksheet = sheet.worksheet("Ingreso")
+        worksheet.append_row([usuario, fecha, dias, precio, estado])
+    except gspread.exceptions.WorksheetNotFound:
+        st.error("❌ No se pudo agregar el registro. La hoja 'Ingreso' no existe.")
 
 def mostrar_dashboard():
     df = cargar_datos()
