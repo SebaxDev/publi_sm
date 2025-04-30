@@ -38,15 +38,18 @@ def login():
     st.title("🔐 Iniciar sesión")
     username = st.text_input("Usuario")
     password = st.text_input("Contraseña", type="password")
+
     if st.button("Ingresar"):
         usuarios = st.secrets.get("auth", {})
         if username in usuarios and password == usuarios[username]:
             st.session_state["logueado"] = True
-            st.experimental_rerun()
         else:
             st.error("Credenciales incorrectas")
 
-if "logueado" not in st.session_state or not st.session_state["logueado"]:
+if "logueado" not in st.session_state:
+    st.session_state["logueado"] = False
+
+if not st.session_state["logueado"]:
     login()
     st.stop()
 
@@ -101,7 +104,6 @@ def guardar_datos(df):
 def mostrar_dashboard():
     df = cargar_datos()
 
-    # Conversión de fecha y campos derivados
     df["Fecha"] = pd.to_datetime(df["Fecha"], format="%d/%m/%Y", errors="coerce")
     df = df.dropna(subset=["Fecha"])
     df["Mes"] = df["Fecha"].dt.strftime("%B %Y").map(
@@ -109,14 +111,12 @@ def mostrar_dashboard():
     )
     df["Año"] = df["Fecha"].dt.year
 
-    # FILTROS
     estados = st.sidebar.multiselect("Filtrar por Estado", df["Estado"].unique(), default=list(df["Estado"].unique()))
     meses = st.sidebar.multiselect("Filtrar por Mes", df["Mes"].unique(), default=list(df["Mes"].unique()))
     anios = st.sidebar.multiselect("Filtrar por Año", df["Año"].unique(), default=list(df["Año"].unique()))
 
     df_filtrado = df[(df["Estado"].isin(estados)) & (df["Mes"].isin(meses)) & (df["Año"].isin(anios))]
 
-    # METRICAS
     activas = df_filtrado[df_filtrado["Estado"] == "Activo"].shape[0]
     vencidas = df_filtrado[df_filtrado["Estado"] == "Vencido"].shape[0]
     total = df_filtrado.shape[0]
@@ -129,7 +129,6 @@ def mostrar_dashboard():
     col3.markdown(f"<div class='metric-box'>📌<br><strong>Total</strong><br>{total}</div>", unsafe_allow_html=True)
     col4.markdown(f"<div class='metric-box'>💰<br><strong>Ganado</strong><br>${total_ganado}</div>", unsafe_allow_html=True)
 
-    # MOSTRAR PUBLICIDADES ACTIVAS CON BOTON PARA SUMAR DIA
     st.subheader("📺 Publicidades Activas")
     df_activas = df[df["Estado"] == "Activo"].copy()
 
