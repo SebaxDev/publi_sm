@@ -4,111 +4,115 @@ import datetime
 import gspread
 from google.oauth2.service_account import Credentials
 
-# Configuración de página
-st.set_page_config(page_title="Gestión de Publicidad", layout="wide")
+# -------------------- CONFIGURACIÓN --------------------
 
-# --- Conexión con Google Sheets ---
-SHEET_ID = "19xOkLYWxB3_Y1zVGV8qKCH8BrcujNktV3-jr1Q9A1-w"
-SHEET_NAME = "Ingreso"
+st.set_page_config(page_title="Panel Publicidad Instagram", layout="wide")
 
-SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
+st.markdown("""
+    <style>
+        .metric-box {
+            background-color: #f0f4f8;
+            padding: 1.2rem;
+            margin: 0.5rem;
+            border-radius: 1rem;
+            text-align: center;
+            font-weight: bold;
+            box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
+            display: inline-block;
+            width: 180px;
+        }
+        .main-title {
+            text-align: center;
+            font-size: 2rem;
+            margin-top: 1rem;
+            margin-bottom: 2rem;
+        }
+    </style>
+""", unsafe_allow_html=True)
 
-credentials = Credentials.from_service_account_info(
-    st.secrets["gcp_service_account"], scopes=SCOPES
+# -------------------- CONEXIÓN A GOOGLE SHEETS --------------------
+
+SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+creds = Credentials.from_service_account_info(
+    st.secrets["gcp_service_account"], scopes=SCOPE
 )
-client = gspread.authorize(credentials)
-spreadsheet = client.open_by_key(SHEET_ID)
-sheet = spreadsheet.worksheet(SHEET_NAME)
+client = gspread.authorize(creds)
+sheet = client.open_by_key("19xOkLYWxB3_Y1zVGV8qKCH8BrcujNktV3-jr1Q9A1-w")
 
-# --- Función para cargar datos ---
+# -------------------- FUNCIONES --------------------
+
 def cargar_datos():
-    data = sheet.get_all_records()
+    worksheet = sheet.worksheet("Base")
+    data = worksheet.get_all_records()
     df = pd.DataFrame(data)
-    df.columns = df.columns.str.strip()  # Limpia espacios accidentales
-    st.write("Columnas detectadas:", df.columns.tolist())  # DEBUG temporal
+    df.columns = df.columns.map(str).str.strip()  # 💡 Fix importante
     return df
 
-# --- Función para guardar datos ---
-def guardar_datos(nuevo):
-    sheet.append_row(nuevo)
+def agregar_registro(usuario, fecha, dias, precio, estado):
+    worksheet = sheet.worksheet("Base")
+    worksheet.append_row([usuario, fecha, dias, precio, estado])
 
-# --- Dashboard visual ---
 def mostrar_dashboard():
     df = cargar_datos()
 
-    st.markdown("""
-        <style>
-            .metric-box {
-                background-color: #f0f4f8;
-                padding: 1rem;
-                border-radius: 1rem;
-                text-align: center;
-                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-                font-size: 1.3rem;
-                margin-bottom: 10px;
-            }
-        </style>
-    """, unsafe_allow_html=True)
+    st.markdown("<div class='main-title'>📊 Panel de Control</div>", unsafe_allow_html=True)
 
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        activas = df[df["Estado"] == "Activo"].shape[0]
-        st.markdown(f"<div class='metric-box'>🟢<br><strong>Activas</strong><br>{activas}</div>", unsafe_allow_html=True)
+    if 'Estado' not in df.columns:
+        st.error("La columna 'Estado' no está en los datos cargados. Verificá el nombre en la hoja de cálculo.")
+        return
 
-    with col2:
-        vencidas = df[df["Estado"] == "Vencido"].shape[0]
-        st.markdown(f"<div class='metric-box'>🔴<br><strong>Vencidas</strong><br>{vencidas}</div>", unsafe_allow_html=True)
+    activas = df[df["Estado"] == "Activo"].shape[0]
+    vencidas = df[df["Estado"] == "Vencido"].shape[0]
+    total = df.shape[0]
+    total_ganado = df["Precio"].sum()
 
-    with col3:
-        total = df.shape[0]
-        st.markdown(f"<div class='metric-box'>📊<br><strong>Total</strong><br>{total}</div>", unsafe_allow_html=True)
+    col1, col2, col3, col4 = st.columns(4)
+    col1.markdown(f"<div class='metric-box'>🟢<br><strong>Activas</strong><br>{activas}</div>", unsafe_allow_html=True)
+    col2.markdown(f"<div class='metric-box'>🔴<br><strong>Vencidas</strong><br>{vencidas}</div>", unsafe_allow_html=True)
+    col3.markdown(f"<div class='metric-box'>📌<br><strong>Total</strong><br>{total}</div>", unsafe_allow_html=True)
+    col4.markdown(f"<div class='metric-box'>💰<br><strong>Ganado</strong><br>${total_ganado}</div>", unsafe_allow_html=True)
 
-# --- Formulario de carga ---
 def formulario():
-    with st.form("formulario_publicidad"):
-        st.subheader("📤 Cargar nueva publicidad")
+    st.markdown("<div class='main-title'>📥 Cargar Nueva Publicidad</div>", unsafe_allow_html=True)
 
-        usuario = st.text_input("Usuario")
-        fecha = st.date_input("Fecha", value=datetime.date.today(), format="%d/%m/%Y")
+    with st.form(key="formulario"):
+        usuario = st.text_input("Usuario de Instagram")
+        fecha = st.date_input("Fecha", value=datetime.date.today())
         dias = st.number_input("Días contratados", min_value=1, step=1)
-        precio = st.number_input("Precio ($)", min_value=0, step=100)
+        precio = st.number_input("Precio ($)", min_value=0.0, step=0.01)
         estado = st.selectbox("Estado", ["Activo", "Vencido"])
+        submit = st.form_submit_button("Cargar")
 
-        enviado = st.form_submit_button("Guardar")
-
-        if enviado:
-            nueva_fila = [usuario, fecha.strftime("%d/%m/%Y"), dias, precio, estado]
-            guardar_datos(nueva_fila)
+        if submit:
+            fecha_str = fecha.strftime("%d/%m/%Y")
+            agregar_registro(usuario, fecha_str, dias, precio, estado)
             st.success("✅ Publicidad cargada correctamente")
 
-# --- Resumen mensual y anual ---
 def resumenes():
-    st.subheader("📅 Resumen mensual y anual")
     df = cargar_datos()
-    df["Fecha"] = pd.to_datetime(df["Fecha"], format="%d/%m/%Y", errors='coerce')
+    df["Fecha"] = pd.to_datetime(df["Fecha"], format="%d/%m/%Y", errors="coerce")
+    df = df.dropna(subset=["Fecha"])
 
-    df["Mes"] = df["Fecha"].dt.strftime("%Y-%m")
-    resumen_mensual = df.groupby("Mes")["Precio"].sum().reset_index()
-    resumen_mensual.columns = ["Mes", "Total"]
-
+    df["Mes"] = df["Fecha"].dt.strftime("%B %Y")
     df["Año"] = df["Fecha"].dt.year
-    resumen_anual = df.groupby("Año")["Precio"].sum().reset_index()
-    resumen_anual.columns = ["Año", "Total"]
+
+    resumen_mensual = df.groupby("Mes")["Precio"].sum().reset_index().sort_values(by="Mes", ascending=False)
+    resumen_anual = df.groupby("Año")["Precio"].sum().reset_index().sort_values(by="Año", ascending=False)
+
+    st.markdown("<div class='main-title'>📆 Resumen de Ingresos</div>", unsafe_allow_html=True)
 
     col1, col2 = st.columns(2)
+
     with col1:
-        st.markdown("### 📈 Mensual")
-        st.bar_chart(resumen_mensual.set_index("Mes"))
+        st.subheader("Por Mes")
+        st.dataframe(resumen_mensual)
 
     with col2:
-        st.markdown("### 📊 Anual")
-        st.bar_chart(resumen_anual.set_index("Año"))
+        st.subheader("Por Año")
+        st.dataframe(resumen_anual)
 
-# --- Ejecución ---
-st.title("📱 Gestión de Publicidad en Instagram")
+# -------------------- UI --------------------
 
 mostrar_dashboard()
-st.markdown("---")
 formulario()
-st.markdown("---")
 resumenes()
