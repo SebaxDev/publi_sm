@@ -135,7 +135,7 @@ def mostrar_dashboard():
     activas = df_filtrado[df_filtrado["Estado"] == "Activo"].shape[0]
     vencidas = df_filtrado[df_filtrado["Estado"] == "Vencido"].shape[0]
     total = df_filtrado.shape[0]
-    total_ganado = df_filtrado["Precio"].sum()
+    total_ganado = pd.to_numeric(df_filtrado["Precio"], errors="coerce").sum()
 
     st.markdown("<div class='main-title'>📊 Panel de Control</div>", unsafe_allow_html=True)
     col1, col2, col3, col4 = st.columns(4)
@@ -190,7 +190,8 @@ def formulario():
             df = pd.concat([df, pd.DataFrame([nuevo])], ignore_index=True)
             guardar_datos(df)
             st.success("✅ Publicidad cargada correctamente")
-            st.experimental_rerun()
+            st.session_state["recien_cargado"] = True
+            st.stop()
 
 # -------------------- UI: RESUMENES Y CLIENTES --------------------
 
@@ -206,6 +207,8 @@ def resumenes():
 
     st.markdown("<div class='main-title'>📆 Resumen de Ingresos</div>", unsafe_allow_html=True)
     col1, col2 = st.columns(2)
+
+    df["Precio"] = pd.to_numeric(df["Precio"], errors="coerce")
 
     resumen_mensual = df.groupby("Mes")["Precio"].sum().reset_index().sort_values(by="Mes", ascending=False)
     resumen_anual = df.groupby("Año")["Precio"].sum().reset_index().sort_values(by="Año", ascending=False)
@@ -223,6 +226,10 @@ def resumenes():
     st.dataframe(resumen_cliente)
 
 # -------------------- EJECUCION DE LA APP --------------------
+
+if st.session_state.get("recien_cargado"):
+    st.session_state["recien_cargado"] = False
+    st.experimental_rerun()
 
 mostrar_dashboard()
 formulario()
