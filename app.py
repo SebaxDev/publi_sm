@@ -208,6 +208,7 @@ def resumenes():
     st.markdown("<div class='main-title'>📆 Resumen de Ingresos</div>", unsafe_allow_html=True)
     col1, col2 = st.columns(2)
 
+    df["Precio"] = df["Precio"].astype(str).str.replace("$", "", regex=False).str.replace(",", ".").str.strip()
     df["Precio"] = pd.to_numeric(df["Precio"], errors="coerce")
 
     resumen_mensual = df.groupby("Mes")["Precio"].sum().reset_index().sort_values(by="Mes", ascending=False)
