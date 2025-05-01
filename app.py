@@ -103,10 +103,15 @@ def cargar_datos():
         st.stop()
 
     data = worksheet.get_all_records()
+    if not data:
+        columnas = ["Usuario", "Fecha", "Dias", "Precio", "Estado", "Dias Usados", "Notas"]
+        return pd.DataFrame(columns=columnas)
+
     df = pd.DataFrame(data)
     df.columns = pd.Index([str(col).strip() for col in df.columns])
-    df["Precio"] = df["Precio"].astype(str).str.replace("$", "", regex=False).str.replace(",", ".").str.strip()
-    df["Precio"] = pd.to_numeric(df["Precio"], errors="coerce")
+    if "Precio" in df.columns:
+        df["Precio"] = df["Precio"].astype(str).str.replace("$", "", regex=False).str.replace(",", ".").str.strip()
+        df["Precio"] = pd.to_numeric(df["Precio"], errors="coerce")
     return df
 
 def guardar_datos(df):
