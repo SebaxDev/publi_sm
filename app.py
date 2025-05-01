@@ -46,6 +46,7 @@ def cargar_datos():
     data = worksheet.get_all_records()
     df = pd.DataFrame(data)
     df.columns = df.columns.map(str).str.strip()
+    df["Precio"] = pd.to_numeric(df["Precio"], errors='coerce')  # 🔥 conversión segura a número
     return df
 
 def agregar_registro(usuario, fecha, dias, precio, estado):
@@ -65,7 +66,7 @@ def mostrar_dashboard():
     vencidas = df[df["Estado"] == "Vencido"].shape[0]
     total = df.shape[0]
     total_ganado = df["Precio"].sum()
-    ganado_format = f"${total_ganado:,.0f}".replace(",", ".")
+    ganado_format = f"${int(total_ganado):,}".replace(",", ".")  # 🔧 usa punto como separador de miles
 
     col1, col2, col3, col4 = st.columns(4)
     col1.markdown(f"<div class='metric-box'>🟢<br><strong>Activas</strong><br>{activas}</div>", unsafe_allow_html=True)
@@ -98,10 +99,10 @@ def resumenes():
     df["Año"] = df["Fecha"].dt.year
 
     resumen_mensual = df.groupby("Mes")["Precio"].sum().reset_index().sort_values(by="Mes", ascending=False)
-    resumen_mensual["Precio"] = resumen_mensual["Precio"].apply(lambda x: f"${x:,.0f}".replace(",", "."))
+    resumen_mensual["Precio"] = resumen_mensual["Precio"].apply(lambda x: f"${int(x):,}".replace(",", "."))
 
     resumen_anual = df.groupby("Año")["Precio"].sum().reset_index().sort_values(by="Año", ascending=False)
-    resumen_anual["Precio"] = resumen_anual["Precio"].apply(lambda x: f"${x:,.0f}".replace(",", "."))
+    resumen_anual["Precio"] = resumen_anual["Precio"].apply(lambda x: f"${int(x):,}".replace(",", "."))
 
     st.markdown("<div class='main-title'>📆 Resumen de Ingresos</div>", unsafe_allow_html=True)
 
