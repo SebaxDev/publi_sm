@@ -105,6 +105,8 @@ def cargar_datos():
     data = worksheet.get_all_records()
     df = pd.DataFrame(data)
     df.columns = pd.Index([str(col).strip() for col in df.columns])
+    df["Precio"] = df["Precio"].astype(str).str.replace("$", "", regex=False).str.replace(",", ".").str.strip()
+    df["Precio"] = pd.to_numeric(df["Precio"], errors="coerce")
     return df
 
 def guardar_datos(df):
@@ -112,7 +114,8 @@ def guardar_datos(df):
     worksheet.clear()
     worksheet.append_row(df.columns.tolist())
     for row in df.itertuples(index=False):
-        worksheet.append_row(list(row))
+        fila = [float(x) if isinstance(x, (int, float)) else str(x) for x in row]
+        worksheet.append_row(fila)
 
 # -------------------- UI: DASHBOARD --------------------
 
@@ -170,7 +173,7 @@ def formulario():
         usuario = st.text_input("Usuario de Instagram")
         fecha = st.date_input("Fecha", value=datetime.date.today())
         dias = st.number_input("Días contratados", min_value=1, step=1)
-        precio = st.number_input("Precio ($)", min_value=0.0, step=0.01)
+        precio = st.number_input("Precio ($)", min_value=0.0, step=0.01, format="%.2f")
         estado = st.selectbox("Estado", ["Activo", "Vencido"])
         notas = st.text_input("Notas (opcional)")
         submit = st.form_submit_button("Cargar")
@@ -208,7 +211,6 @@ def resumenes():
     st.markdown("<div class='main-title'>📆 Resumen de Ingresos</div>", unsafe_allow_html=True)
     col1, col2 = st.columns(2)
 
-    df["Precio"] = df["Precio"].astype(str).str.replace("$", "", regex=False).str.replace(",", ".").str.strip()
     df["Precio"] = pd.to_numeric(df["Precio"], errors="coerce")
 
     resumen_mensual = df.groupby("Mes")["Precio"].sum().reset_index().sort_values(by="Mes", ascending=False)
