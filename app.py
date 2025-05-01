@@ -42,7 +42,7 @@ sheet = client.open_by_key("19xOkLYWxB3_Y1zVGV8qKCH8BrcujNktV3-jr1Q9A1-w")
 # -------------------- FUNCIONES --------------------
 
 def cargar_datos():
-    worksheet = sheet.worksheet("Base")
+    worksheet = sheet.worksheet("Ingreso")
     data = worksheet.get_all_records()
     df = pd.DataFrame(data)
     df.columns = df.columns.map(str).str.strip()
@@ -50,7 +50,7 @@ def cargar_datos():
     return df
 
 def agregar_registro(usuario, fecha, dias, precio, estado):
-    worksheet = sheet.worksheet("Base")
+    worksheet = sheet.worksheet("Ingreso")
     worksheet.append_row([usuario, fecha, dias, precio, estado])
 
 def mostrar_dashboard():
