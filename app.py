@@ -112,10 +112,8 @@ def cargar_datos():
 def guardar_datos(df):
     worksheet = sheet.worksheet("Ingreso")
     worksheet.clear()
-    worksheet.append_row(df.columns.tolist())
-    for row in df.itertuples(index=False):
-        fila = [float(x) if isinstance(x, (int, float)) else str(x) for x in row]
-        worksheet.append_row(fila)
+    values = [df.columns.tolist()] + df.astype(str).values.tolist()
+    worksheet.update("A1", values)
 
 # -------------------- UI: DASHBOARD --------------------
 
