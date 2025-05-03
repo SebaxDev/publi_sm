@@ -79,22 +79,45 @@ def formulario():
         if clear:
             st.experimental_rerun()
 
-# Función para limpiar valores de la columna 'Precio $'
+# Función para limpiar y formatear precios
 def limpiar_precio(valor):
     try:
-        return f"${int(float(str(valor).replace('$', '').replace('.', '').replace(',', '').strip())):,}".replace(",", ".")
+        # Quita símbolos y convierte a número entero
+        numero = float(str(valor).replace("$", "").replace(".", "").replace(",", "").strip())
+        return f"${int(numero):,}".replace(",", ".")
     except:
         return "N/D"
 
 # Función que muestra el resumen de ingresos
 def resumen_ingresos():
     df = cargar_datos()
-    st.subheader("💰 Resumen de Ingresos")
-    df['Mes'] = df['Fecha'].dt.strftime('%B %Y')
-    resumen = df.groupby('Mes')['Precio $'].sum().reset_index()
-    resumen["Precio $"] = resumen["Precio $"].apply(lambda x: f"${int(x):,}".replace(",", "."))
+    
+    if "Estado" not in df.columns or "Usuario" not in df.columns or "Precio $" not in df.columns:
+        st.error("❌ Las columnas necesarias ('Estado', 'Usuario', 'Precio $') no se encuentran en el archivo.")
+        return
 
-    st.dataframe(resumen, use_container_width=True)
+    # Filtrar registros activos
+    activos = df[df["Estado"] == "Activo"].copy()
+
+    if activos.empty:
+        st.warning("⚠️ No hay registros con estado 'Activo'.")
+        return
+
+    # Asegurar que 'Precio $' sea numérico antes de agrupar
+    activos["Precio $"] = pd.to_numeric(
+        activos["Precio $"].astype(str).str.replace("[^\d.]", "", regex=True),
+        errors="coerce"
+    ).fillna(0)
+
+    # Agrupar por usuario y sumar ingresos
+    resumen = activos.groupby("Usuario", as_index=False)["Precio $"].sum()
+
+    # Aplicar formato legible
+    resumen["Precio $"] = resumen["Precio $"].apply(limpiar_precio)
+
+    st.subheader("💰 Resumen de ingresos por usuario")
+    st.dataframe(resumen)
+
 
 # Ejecutar componentes
 st.markdown("<h1 style='text-align: center;'>Gestión de Publicidades</h1>", unsafe_allow_html=True)
