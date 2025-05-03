@@ -49,7 +49,7 @@ def mostrar_dashboard():
 
     for index, row in activas.iterrows():
         col1, col2, col3, col4 = st.columns([3, 2, 2, 2])
-        col1.markdown(f"**👤 ** {row['Usuario']}")
+        col1.markdown(f"**👤** {row['Usuario']}")
         col2.markdown(f"📅 **Fecha:** {row['Fecha'].strftime('%d/%m/%Y') if pd.notnull(row['Fecha']) else 'Fecha inválida'}")
         col3.markdown(f"📆 **Días:** {row.get('Días', 'N/D')}")
         if col4.button("❌ Marcar vencido", key=f"vencido_{index}"):
