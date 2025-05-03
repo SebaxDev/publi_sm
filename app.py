@@ -144,10 +144,30 @@ def resumen_ingresos():
 # --- Menú de navegación ---
 st.markdown("<h1 style='text-align: center;'>Gestión de Publicidades</h1>", unsafe_allow_html=True)
 
+# --- Menú horizontal centrado y sin etiqueta ---
+st.markdown(
+    """
+    <style>
+    .block-container {
+        padding-top: 1rem;
+    }
+    div[data-testid="stRadio"] > label {
+        display: none;
+    }
+    .centered-radio {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 2rem;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True)
+
 menu = st.radio(
-    "📂 Navegación",
-    ["Inicio", "Activos", "Ingresos"],
-    horizontal=True)
+    label="",
+    options=["Inicio", "Activos", "Ingresos"],
+    horizontal=True,
+    key="menu_principal")
 
 if menu == "Inicio":
     formulario()
