@@ -121,7 +121,7 @@ def resumen_ingresos():
         st.error("❌ Las columnas necesarias no se encuentran en el archivo.")
         return
 
-    activos = df[df["Estado"] == "Activo"].copy()
+    activos = df.copy()
 
     if activos.empty:
         st.warning("⚠️ No hay registros con estado 'Activo'.")
@@ -135,7 +135,7 @@ def resumen_ingresos():
     resumen_usuario = activos.groupby("Usuario", as_index=False)["Precio $"].sum()
     resumen_usuario["Precio $"] = resumen_usuario["Precio $"].apply(limpiar_precio)
 
-    st.subheader("💰 Resumen de ingresos por usuario")
+    st.subheader("💰 Resumen de ingresos por usuario (incluye vencidos)")
     st.dataframe(resumen_usuario)
 
     # ✅ Resumen por mes (MM/YYYY)
