@@ -19,7 +19,10 @@ def cargar_datos():
     data = worksheet.get_all_records()
     df = pd.DataFrame(data)
     df.columns = df.columns.astype(str).str.strip()
-    df['Fecha'] = pd.to_datetime(df['Fecha'], dayfirst=True, errors='coerce')  # Manejo seguro de fechas
+    if 'Fecha' in df.columns:
+    df['Fecha'] = pd.to_datetime(df['Fecha'], dayfirst=True, errors='coerce')
+    else:
+    st.warning("La columna 'Fecha' no fue encontrada en la hoja de cálculo.")
     return df
 
 # Guardar nuevos datos
