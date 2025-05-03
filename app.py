@@ -18,11 +18,14 @@ worksheet = sheet.worksheet("Ingreso")
 def cargar_datos():
     data = worksheet.get_all_records()
     df = pd.DataFrame(data)
-    df.columns = df.columns.astype(str).str.strip()
+    df.columns = df.columns.astype(str).str.strip()  # Elimina espacios alrededor
+    st.write("Columnas detectadas:", df.columns.tolist())  # 👈 Esto imprime las columnas reales
+    
     if 'Fecha' in df.columns:
         df['Fecha'] = pd.to_datetime(df['Fecha'], dayfirst=True, errors='coerce')
     else:
         st.warning("La columna 'Fecha' no fue encontrada en la hoja de cálculo.")
+    
     return df
 
 # Guardar nuevos datos
@@ -37,13 +40,18 @@ def marcar_vencido(index, df):
 # Mostrar publicidades activas
 def mostrar_dashboard():
     df = cargar_datos()
+
+    if "Estado" not in df.columns or "Usuario" not in df.columns:
+        st.error("Faltan las columnas necesarias ('Estado', 'Usuario') en la hoja de cálculo.")
+        return
+
     st.subheader("📢 Publicidades Activas")
     activas = df[df["Estado"] == "Activo"].copy()
 
     for index, row in activas.iterrows():
         col1, col2, col3, col4 = st.columns([3, 2, 2, 2])
         col1.markdown(f"**👤 Usuario:** {row['Usuario']}")
-        col2.markdown(f"📅 **Fecha:** {row['Fecha'].strftime('%d/%m/%Y')}")
+        col2.markdown(f"📅 **Fecha:** {row['Fecha'].strftime('%d/%m/%Y') if pd.notnull(row['Fecha']) else 'Fecha inválida'}")
         col3.markdown(f"📆 **Días:** {row['Días']}")
         if col4.button("❌ Marcar vencido", key=f"vencido_{index}"):
             marcar_vencido(index, df)
