@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import datetime
 import gspread
+import uuid
 from google.oauth2.service_account import Credentials
 
 # Configuración de la página
@@ -19,22 +20,38 @@ def cargar_datos():
     data = worksheet.get_all_records()
     df = pd.DataFrame(data)
     df.columns = df.columns.astype(str).str.strip()
-    
+
     if 'Fecha' in df.columns:
         df['Fecha'] = pd.to_datetime(df['Fecha'], dayfirst=True, errors='coerce')
     else:
         st.warning("La columna 'Fecha' no fue encontrada en la hoja de cálculo.")
-    
+
     return df
 
-# Guardar nuevos datos
+# Guardar nuevos datos con ID único
 def guardar_datos(usuario, fecha, dias, precio):
-    worksheet.append_row([usuario, fecha.strftime("%d/%m/%Y"), dias, precio, "Activo"])
+    id_unico = str(uuid.uuid4())
+    worksheet.append_row([
+        usuario,
+        fecha.strftime("%d/%m/%Y"),
+        dias,
+        precio,
+        "Activo",
+        id_unico
+    ])
 
-# Actualizar estado a "Vencido"
+# Actualizar estado a "Vencido" usando ID
 def marcar_vencido(index, df):
-    cell = worksheet.find(df.loc[index, "Usuario"])
-    worksheet.update_cell(cell.row, 5, "Vencido")
+    try:
+        id_unico = df.loc[index, "ID"]
+        celda_id = worksheet.find(id_unico)
+        if celda_id:
+            fila = celda_id.row
+            worksheet.update_cell(fila, 5, "Vencido")  # Columna 5 = "Estado"
+        else:
+            st.error("❌ No se encontró el ID único en la hoja.")
+    except Exception as e:
+        st.error(f"❌ Error al marcar como vencido: {e}")
 
 # Mostrar publicidades activas
 def mostrar_dashboard():
@@ -126,7 +143,6 @@ def resumen_ingresos():
 
     st.subheader("🗓️ Total de ingresos por año")
     st.dataframe(resumen_anio)
-
 
 # Ejecutar componentes
 st.markdown("<h1 style='text-align: center;'>Gestión de Publicidades</h1>", unsafe_allow_html=True)
