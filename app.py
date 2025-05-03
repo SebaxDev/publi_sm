@@ -79,7 +79,14 @@ def formulario():
         if clear:
             st.experimental_rerun()
 
-# Mostrar resumen de ingresos
+# Función para limpiar valores de la columna 'Precio $'
+def limpiar_precio(valor):
+    try:
+        return f"${int(float(str(valor).replace('$', '').replace('.', '').replace(',', '').strip())):,}".replace(",", ".")
+    except:
+        return "N/D"
+
+# Función que muestra el resumen de ingresos
 def resumen_ingresos():
     df = cargar_datos()
     st.subheader("💰 Resumen de Ingresos")
