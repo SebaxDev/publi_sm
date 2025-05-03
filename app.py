@@ -49,7 +49,7 @@ def mostrar_dashboard():
 
     for index, row in activas.iterrows():
         col1, col2, col3, col4 = st.columns([3, 2, 2, 2])
-        col1.markdown(f"**👤 Usuario:** {row['Usuario']}")
+        col1.markdown(f"**👤:** {row['Usuario']}")
         col2.markdown(f"📅 **Fecha:** {row['Fecha'].strftime('%d/%m/%Y') if pd.notnull(row['Fecha']) else 'Fecha inválida'}")
         col3.markdown(f"📆 **Días:** {row.get('Días', 'N/D')}")
         if col4.button("❌ Marcar vencido", key=f"vencido_{index}"):
@@ -89,9 +89,9 @@ def limpiar_precio(valor):
 # Función que muestra el resumen de ingresos
 def resumen_ingresos():
     df = cargar_datos()
-    
-    if "Estado" not in df.columns or "Usuario" not in df.columns or "Precio $" not in df.columns:
-        st.error("❌ Las columnas necesarias ('Estado', 'Usuario', 'Precio $') no se encuentran en el archivo.")
+
+    if "Estado" not in df.columns or "Usuario" not in df.columns or "Precio $" not in df.columns or "Fecha" not in df.columns:
+        st.error("❌ Las columnas necesarias no se encuentran en el archivo.")
         return
 
     activos = df[df["Estado"] == "Activo"].copy()
@@ -100,17 +100,33 @@ def resumen_ingresos():
         st.warning("⚠️ No hay registros con estado 'Activo'.")
         return
 
-    # Asegurar que 'Precio $' sea numérico antes de agrupar
-    activos["Precio $"] = pd.to_numeric(
-        activos["Precio $"].astype(str).str.replace("[^\d.]", "", regex=True),
-        errors="coerce"
-    ).fillna(0)
+    # Convertir 'Precio $' a numérico correctamente
+    activos["Precio $"] = activos["Precio $"].astype(str).str.replace("$", "").str.replace(".", "").str.replace(",", "")
+    activos["Precio $"] = pd.to_numeric(activos["Precio $"], errors="coerce").fillna(0)
 
-    resumen = activos.groupby("Usuario", as_index=False)["Precio $"].sum()
-    resumen["Precio $"] = resumen["Precio $"].apply(limpiar_precio)
+    # ✅ Resumen por usuario
+    resumen_usuario = activos.groupby("Usuario", as_index=False)["Precio $"].sum()
+    resumen_usuario["Precio $"] = resumen_usuario["Precio $"].apply(limpiar_precio)
 
     st.subheader("💰 Resumen de ingresos por usuario")
-    st.dataframe(resumen)
+    st.dataframe(resumen_usuario)
+
+    # ✅ Resumen por mes (MM/YYYY)
+    activos["Mes/Año"] = activos["Fecha"].dt.strftime("%m/%Y")
+    resumen_mes = activos.groupby("Mes/Año", as_index=False)["Precio $"].sum()
+    resumen_mes["Precio $"] = resumen_mes["Precio $"].apply(limpiar_precio)
+
+    st.subheader("📆 Total de ingresos por mes")
+    st.dataframe(resumen_mes)
+
+    # ✅ Resumen por año
+    activos["Año"] = activos["Fecha"].dt.year
+    resumen_anio = activos.groupby("Año", as_index=False)["Precio $"].sum()
+    resumen_anio["Precio $"] = resumen_anio["Precio $"].apply(limpiar_precio)
+
+    st.subheader("🗓️ Total de ingresos por año")
+    st.dataframe(resumen_anio)
+
 
 # Ejecutar componentes
 st.markdown("<h1 style='text-align: center;'>Gestión de Publicidades</h1>", unsafe_allow_html=True)
