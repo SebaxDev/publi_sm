@@ -141,30 +141,13 @@ def resumen_ingresos():
     st.subheader("🗓️ Total de ingresos por año")
     st.dataframe(resumen_anio)
 
-# --- Menú horizontal centrado y sin etiqueta ---
-st.markdown(
-    """
-    <style>
-    .block-container {
-        padding-top: 1rem;
-    }
-    div[data-testid="stRadio"] > label {
-        display: none;
-    }
-    .centered-radio {
-        display: flex;
-        justify-content: center;
-        margin-bottom: 2rem;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True)
+# --- Menú de navegación ---
+st.markdown("<h1 style='text-align: center;'>Publicidades SM</h1>", unsafe_allow_html=True)
 
 menu = st.radio(
-    label="",
-    options=["Inicio", "Activos", "Ingresos"],
-    horizontal=True,
-    key="menu_principal")
+    "📂 Menu",
+    ["Inicio", "Activos", "Ingresos"],
+    horizontal=True)
 
 if menu == "Inicio":
     formulario()
