@@ -19,10 +19,10 @@ def cargar_datos():
     data = worksheet.get_all_records()
     df = pd.DataFrame(data)
     df.columns = df.columns.astype(str).str.strip()
-   if 'Fecha' in df.columns:
-    df['Fecha'] = pd.to_datetime(df['Fecha'], dayfirst=True, errors='coerce')
-   else:
-    st.warning("La columna 'Fecha' no fue encontrada en la hoja de cálculo.")
+    if 'Fecha' in df.columns:
+        df['Fecha'] = pd.to_datetime(df['Fecha'], dayfirst=True, errors='coerce')
+    else:
+        st.warning("La columna 'Fecha' no fue encontrada en la hoja de cálculo.")
     return df
 
 # Guardar nuevos datos
@@ -77,7 +77,6 @@ def resumen_ingresos():
     st.subheader("💰 Resumen de Ingresos")
     df['Mes'] = df['Fecha'].dt.strftime('%B %Y')
     resumen = df.groupby('Mes')['Precio $'].sum().reset_index()
-
     resumen["Precio $"] = resumen["Precio $"].apply(lambda x: f"${int(x):,}".replace(",", "."))
 
     st.dataframe(resumen, use_container_width=True)
