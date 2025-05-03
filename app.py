@@ -15,7 +15,7 @@ creds = Credentials.from_service_account_info(
 client = gspread.authorize(creds)
 SHEET_ID = "19xOkLYWxB3_Y1zVGV8qKCH8BrcujNktV3-jr1Q9A1-w"
 sheet = client.open_by_key(SHEET_ID)
-worksheet = sheet.worksheet("Base")
+worksheet = sheet.worksheet("Ingreso")
 
 # --- FUNCIÓN PARA CARGAR DATOS ---
 def cargar_datos():
