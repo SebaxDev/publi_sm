@@ -15,20 +15,16 @@ gc = gspread.authorize(CREDS)
 sheet = gc.open_by_key("19xOkLYWxB3_Y1zVGV8qKCH8BrcujNktV3-jr1Q9A1-w")
 worksheet = sheet.worksheet("Ingreso")
 
-# Cargar datos
+# --- Funciones ---
+
 def cargar_datos():
     data = worksheet.get_all_records()
     df = pd.DataFrame(data)
     df.columns = df.columns.astype(str).str.strip()
-
     if 'Fecha' in df.columns:
         df['Fecha'] = pd.to_datetime(df['Fecha'], dayfirst=True, errors='coerce')
-    else:
-        st.warning("La columna 'Fecha' no fue encontrada en la hoja de cálculo.")
-
     return df
 
-# Guardar nuevos datos con ID único
 def guardar_datos(usuario, fecha, dias, precio):
     id_unico = str(uuid.uuid4())
     worksheet.append_row([
@@ -40,40 +36,27 @@ def guardar_datos(usuario, fecha, dias, precio):
         id_unico
     ])
 
-# Actualizar estado a "Vencido" usando ID
 def marcar_vencido(index, df):
     try:
         id_unico = df.loc[index, "ID"]
         celda_id = worksheet.find(id_unico)
         if celda_id:
             fila = celda_id.row
-            worksheet.update_cell(fila, 5, "Vencido")  # Columna 5 = "Estado"
+            worksheet.update_cell(fila, 5, "Vencido")
         else:
             st.error("❌ No se encontró el ID único en la hoja.")
     except Exception as e:
         st.error(f"❌ Error al marcar como vencido: {e}")
 
-# Mostrar publicidades activas
-def mostrar_dashboard():
-    df = cargar_datos()
+def limpiar_precio(valor):
+    try:
+        numero = float(str(valor).replace("$", "").replace(".", "").replace(",", "").strip())
+        return f"${int(numero):,}".replace(",", ".")
+    except:
+        return "N/D"
 
-    if "Estado" not in df.columns or "Usuario" not in df.columns:
-        st.error("Faltan las columnas necesarias ('Estado', 'Usuario') en la hoja de cálculo.")
-        return
+# --- Secciones ---
 
-    st.subheader("📢 Publicidades Activas")
-    activas = df[df["Estado"] == "Activo"].copy()
-
-    for index, row in activas.iterrows():
-        col1, col2, col3, col4 = st.columns([3, 2, 2, 2])
-        col1.markdown(f"**👤** {row['Usuario']}")
-        col2.markdown(f"📅 **Fecha:** {row['Fecha'].strftime('%d/%m/%Y') if pd.notnull(row['Fecha']) else 'Fecha inválida'}")
-        col3.markdown(f"📆 **Días:** {row.get('Días', 'N/D')}")
-        if col4.button("❌ Marcar vencido", key=f"vencido_{index}"):
-            marcar_vencido(index, df)
-            st.rerun()
-
-# Formulario de carga
 def formulario():
     st.subheader("➕ Cargar nueva publicidad")
     with st.form("carga_formulario", clear_on_submit=False):
@@ -105,33 +88,38 @@ def formulario():
         st.info("🧼 Formulario limpiado.")
         del st.session_state["form_limpio"]
 
-# Función para limpiar y formatear precios
-def limpiar_precio(valor):
-    try:
-        numero = float(str(valor).replace("$", "").replace(".", "").replace(",", "").strip())
-        return f"${int(numero):,}".replace(",", ".")
-    except:
-        return "N/D"
+def mostrar_dashboard():
+    df = cargar_datos()
+    if "Estado" not in df.columns or "Usuario" not in df.columns:
+        st.error("Faltan las columnas necesarias ('Estado', 'Usuario') en la hoja de cálculo.")
+        return
 
-# Función que muestra el resumen de ingresos
+    st.subheader("📢 Publicidades Activas")
+    activas = df[df["Estado"] == "Activo"].copy()
+
+    for index, row in activas.iterrows():
+        col1, col2, col3, col4 = st.columns([3, 2, 2, 2])
+        col1.markdown(f"**👤** {row['Usuario']}")
+        col2.markdown(f"📅 **Fecha:** {row['Fecha'].strftime('%d/%m/%Y') if pd.notnull(row['Fecha']) else 'Fecha inválida'}")
+        col3.markdown(f"📆 **Días:** {row.get('Días', 'N/D')}")
+        if col4.button("❌ Marcar vencido", key=f"vencido_{index}"):
+            marcar_vencido(index, df)
+            st.rerun()
+
 def resumen_ingresos():
     df = cargar_datos()
-
     if "Estado" not in df.columns or "Usuario" not in df.columns or "Precio $" not in df.columns or "Fecha" not in df.columns:
         st.error("❌ Las columnas necesarias no se encuentran en el archivo.")
         return
 
     activos = df.copy()
-
     if activos.empty:
-        st.warning("⚠️ No hay registros con estado 'Activo'.")
+        st.warning("⚠️ No hay registros disponibles.")
         return
 
-    # Convertir 'Precio $' a numérico correctamente
     activos["Precio $"] = activos["Precio $"].astype(str).str.replace("$", "").str.replace(".", "").str.replace(",", "")
     activos["Precio $"] = pd.to_numeric(activos["Precio $"], errors="coerce").fillna(0)
 
-    # ✅ Top 10 usuarios por ingresos (incluye activos y vencidos)
     resumen_usuario = activos.groupby("Usuario", as_index=False)["Precio $"].sum()
     resumen_usuario = resumen_usuario.sort_values(by="Precio $", ascending=False).head(10)
     resumen_usuario["Precio $"] = resumen_usuario["Precio $"].apply(limpiar_precio)
@@ -139,7 +127,6 @@ def resumen_ingresos():
     st.subheader("🏆 Top 10 Usuarios por Ingresos")
     st.dataframe(resumen_usuario)
 
-    # ✅ Resumen por mes (MM/YYYY)
     activos["Mes/Año"] = activos["Fecha"].dt.strftime("%m/%Y")
     resumen_mes = activos.groupby("Mes/Año", as_index=False)["Precio $"].sum()
     resumen_mes["Precio $"] = resumen_mes["Precio $"].apply(limpiar_precio)
@@ -147,7 +134,6 @@ def resumen_ingresos():
     st.subheader("📆 Total de ingresos por mes")
     st.dataframe(resumen_mes)
 
-    # ✅ Resumen por año
     activos["Año"] = activos["Fecha"].dt.year
     resumen_anio = activos.groupby("Año", as_index=False)["Precio $"].sum()
     resumen_anio["Precio $"] = resumen_anio["Precio $"].apply(limpiar_precio)
@@ -155,10 +141,14 @@ def resumen_ingresos():
     st.subheader("🗓️ Total de ingresos por año")
     st.dataframe(resumen_anio)
 
-# Ejecutar componentes
+# --- Menú de navegación ---
 st.markdown("<h1 style='text-align: center;'>Gestión de Publicidades</h1>", unsafe_allow_html=True)
-mostrar_dashboard()
-st.markdown("---")
-formulario()
-st.markdown("---")
-resumen_ingresos()
+
+menu = st.selectbox("📂 Seleccioná una opción", ["Formulario", "Publicidades Activas", "Resumen de Ingresos"])
+
+if menu == "Formulario":
+    formulario()
+elif menu == "Publicidades Activas":
+    mostrar_dashboard()
+elif menu == "Resumen de Ingresos":
+    resumen_ingresos()
