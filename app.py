@@ -18,7 +18,7 @@ worksheet = sheet.worksheet("Ingreso")
 def cargar_datos():
     data = worksheet.get_all_records()
     df = pd.DataFrame(data)
-    df.columns = df.columns.str.strip()
+    df.columns = df.columns.astype(str).str.strip()
     df['Fecha'] = pd.to_datetime(df['Fecha'], dayfirst=True, errors='coerce')  # Manejo seguro de fechas
     return df
 
