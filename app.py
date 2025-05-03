@@ -18,8 +18,7 @@ worksheet = sheet.worksheet("Ingreso")
 def cargar_datos():
     data = worksheet.get_all_records()
     df = pd.DataFrame(data)
-    df.columns = df.columns.astype(str).str.strip()  # Elimina espacios alrededor
-    st.write("Columnas detectadas:", df.columns.tolist())  # 👈 Esto imprime las columnas reales
+    df.columns = df.columns.astype(str).str.strip()
     
     if 'Fecha' in df.columns:
         df['Fecha'] = pd.to_datetime(df['Fecha'], dayfirst=True, errors='coerce')
@@ -52,7 +51,7 @@ def mostrar_dashboard():
         col1, col2, col3, col4 = st.columns([3, 2, 2, 2])
         col1.markdown(f"**👤 Usuario:** {row['Usuario']}")
         col2.markdown(f"📅 **Fecha:** {row['Fecha'].strftime('%d/%m/%Y') if pd.notnull(row['Fecha']) else 'Fecha inválida'}")
-        col3.markdown(f"📆 **Días:** {row['Días']}")
+        col3.markdown(f"📆 **Días:** {row.get('Días', 'N/D')}")
         if col4.button("❌ Marcar vencido", key=f"vencido_{index}"):
             marcar_vencido(index, df)
             st.experimental_rerun()
@@ -82,7 +81,6 @@ def formulario():
 # Función para limpiar y formatear precios
 def limpiar_precio(valor):
     try:
-        # Quita símbolos y convierte a número entero
         numero = float(str(valor).replace("$", "").replace(".", "").replace(",", "").strip())
         return f"${int(numero):,}".replace(",", ".")
     except:
@@ -96,7 +94,6 @@ def resumen_ingresos():
         st.error("❌ Las columnas necesarias ('Estado', 'Usuario', 'Precio $') no se encuentran en el archivo.")
         return
 
-    # Filtrar registros activos
     activos = df[df["Estado"] == "Activo"].copy()
 
     if activos.empty:
@@ -109,15 +106,11 @@ def resumen_ingresos():
         errors="coerce"
     ).fillna(0)
 
-    # Agrupar por usuario y sumar ingresos
     resumen = activos.groupby("Usuario", as_index=False)["Precio $"].sum()
-
-    # Aplicar formato legible
     resumen["Precio $"] = resumen["Precio $"].apply(limpiar_precio)
 
     st.subheader("💰 Resumen de ingresos por usuario")
     st.dataframe(resumen)
-
 
 # Ejecutar componentes
 st.markdown("<h1 style='text-align: center;'>Gestión de Publicidades</h1>", unsafe_allow_html=True)
