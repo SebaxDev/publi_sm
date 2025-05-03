@@ -131,11 +131,12 @@ def resumen_ingresos():
     activos["Precio $"] = activos["Precio $"].astype(str).str.replace("$", "").str.replace(".", "").str.replace(",", "")
     activos["Precio $"] = pd.to_numeric(activos["Precio $"], errors="coerce").fillna(0)
 
-    # ✅ Resumen por usuario
+    # ✅ Top 10 usuarios por ingresos (incluye activos y vencidos)
     resumen_usuario = activos.groupby("Usuario", as_index=False)["Precio $"].sum()
+    resumen_usuario = resumen_usuario.sort_values(by="Precio $", ascending=False).head(10)
     resumen_usuario["Precio $"] = resumen_usuario["Precio $"].apply(limpiar_precio)
 
-    st.subheader("💰 Resumen de ingresos por usuario (incluye vencidos)")
+    st.subheader("🏆 Top 10 Usuarios por Ingresos")
     st.dataframe(resumen_usuario)
 
     # ✅ Resumen por mes (MM/YYYY)
