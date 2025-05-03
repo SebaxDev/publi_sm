@@ -144,11 +144,14 @@ def resumen_ingresos():
 # --- Menú de navegación ---
 st.markdown("<h1 style='text-align: center;'>Gestión de Publicidades</h1>", unsafe_allow_html=True)
 
-menu = st.selectbox("📂 Seleccioná una opción", ["Formulario", "Publicidades Activas", "Resumen de Ingresos"])
+menu = st.radio(
+    "📂 Navegación",
+    ["Inicio", "Activos", "Ingresos"],
+    horizontal=True)
 
-if menu == "Formulario":
+if menu == "Inicio":
     formulario()
-elif menu == "Publicidades Activas":
+elif menu == "Activos":
     mostrar_dashboard()
-elif menu == "Resumen de Ingresos":
+elif menu == "Ingresos":
     resumen_ingresos()
