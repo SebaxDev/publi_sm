@@ -86,14 +86,25 @@ def formulario():
         clear = col2.form_submit_button("Limpiar")
 
         if submit:
-            if usuario and dias > 0 and precio > 0:
-                guardar_datos(usuario, fecha, dias, precio)
-                st.success("✅ Publicidad cargada correctamente.")
-                st.experimental_rerun()
-            else:
-                st.warning("⚠️ Completá todos los campos.")
-        if clear:
-            st.experimental_rerun()
+    if usuario and dias > 0 and precio > 0:
+        guardar_datos(usuario, fecha, dias, precio)
+        st.session_state["form_guardado"] = True
+        st.rerun()
+    else:
+        st.warning("⚠️ Completá todos los campos.")
+
+if clear:
+    st.session_state["form_limpio"] = True
+    st.rerun()
+
+# Mostrar mensaje después del rerun
+if st.session_state.get("form_guardado"):
+    st.success("✅ Publicidad cargada correctamente.")
+    del st.session_state["form_guardado"]
+elif st.session_state.get("form_limpio"):
+    st.info("🧼 Formulario limpiado.")
+    del st.session_state["form_limpio"]
+)
 
 # Función para limpiar y formatear precios
 def limpiar_precio(valor):
