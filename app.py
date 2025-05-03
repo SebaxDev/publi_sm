@@ -103,7 +103,7 @@ if st.session_state.get("form_guardado"):
     del st.session_state["form_guardado"]
 elif st.session_state.get("form_limpio"):
     st.info("🧼 Formulario limpiado.")
-    del st.session_state["form_limpio"])
+    del st.session_state["form_limpio"]
 
 # Función para limpiar y formatear precios
 def limpiar_precio(valor):
