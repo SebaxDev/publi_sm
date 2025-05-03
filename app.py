@@ -141,9 +141,6 @@ def resumen_ingresos():
     st.subheader("🗓️ Total de ingresos por año")
     st.dataframe(resumen_anio)
 
-# --- Menú de navegación ---
-st.markdown("<h1 style='text-align: center;'>Gestión de Publicidades</h1>", unsafe_allow_html=True)
-
 # --- Menú horizontal centrado y sin etiqueta ---
 st.markdown(
     """
